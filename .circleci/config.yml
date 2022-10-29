@@ -12,8 +12,8 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            aws cloudformation delete-stack  --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}"
-            aws cloudformation delete-stack  --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}"
+            aws cloudformation delete-stack  --stack-name "udapeople-frontend-676688e"
+            aws cloudformation delete-stack  --stack-name "udapeople-backend-676688e"
 
   install_ansible:
     description: Install Ansible
@@ -160,16 +160,16 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --tags project=FWD-Prj3-be \
-              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
+              --stack-name "udapeople-backend-676688e" \
+              --parameter-overrides ID="676688e"  
       - run:
           name: Ensure front-end infrastructure exist
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
               --tags project=FWD-Prj3-fe \
-              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
+              --stack-name "udapeople-frontend-676688e" \
+              --parameter-overrides ID="676688e"  
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -194,16 +194,19 @@ jobs:
       - attach_workspace:
           at: ./
       - install_ansible
-#      - run:
-#          name: Install dependencies
-#          command: |
-#            # Your code here
-#            exit 1
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-server.yml
-      # Here's where you will add some code to rollback on failure      
+            ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-serve.yml
+      - run:
+          name: Install aws-cli on rollback
+          when: on_fail
+          command: |
+            sudo apt install unzip -y
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+      - destroy-environment
 
 #  run-migrations:
 #    docker:
