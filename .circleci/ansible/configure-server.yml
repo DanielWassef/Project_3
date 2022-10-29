@@ -17,7 +17,13 @@
       # Your code here
 
     - name: "install python for Ansible."
-      # Your code here
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      shell: |
+        apt-get update -y
+        sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
+        apt-get install python3 python3-pip -y
 
   # Get the environment variables from CircleCI and add to the EC2 instance
   environment:
@@ -32,4 +38,6 @@
     - TYPEORM_MIGRATIONS_DIR: "{{ lookup('env', 'TYPEORM_MIGRATIONS_DIR')}}"
 
   roles:
-    # Your code here
+    - configure-prometheus-node-exporter
+    - configure-server
+    - deploy
