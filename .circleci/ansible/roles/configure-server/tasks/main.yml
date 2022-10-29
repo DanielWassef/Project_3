@@ -1,4 +1,13 @@
-    - name: "Repo Update"
-      apt:
-        update_cache: yes
-        cache_valid_time: 3600
+- name: "Install NodeJs"
+  apt:
+    name: nodejs
+    state: latest
+
+- name: "Install NPM"
+  apt:
+    name: npm
+    state: latest
+
+- name: "Install PM2"
+  shell: |
+    npm install pm2 -g
