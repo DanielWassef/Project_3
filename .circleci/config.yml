@@ -193,23 +193,18 @@ jobs:
           fingerprints: ["00:35:2d:41:87:37:9c:6e:25:9a:48:2d:9e:db:04:5f"]
       - attach_workspace:
           at: ./
-      - run:
-          name: Check
-          command: |      
-            cat .circleci/ansible/inventory.txt
       - install_ansible
 #      - run:
 #          name: Install dependencies
 #          command: |
 #            # Your code here
 #            exit 1
-#      - run:
-#          name: Configure server
-#          command: |
-#            # Your code here
-#            exit 1
+      - run:
+          name: Configure server
+          command: |
+            ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-server.yml
       # Here's where you will add some code to rollback on failure      
-
+      - destroy-environment
 #  run-migrations:
 #    docker:
 #      # Docker image here that supports NodeJS
