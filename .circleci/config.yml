@@ -31,6 +31,7 @@ commands:
     steps:
       - run:
           name: Install NodeJS and NPM
+          when: on_fail
           command: |          
             sudo apt update -y
             sudo apt install nodejs npm -y
