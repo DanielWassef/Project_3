@@ -34,7 +34,7 @@ commands:
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
           aws-region: AWS_DEFAULT_REGION
 
-  install_aws-cli_onfail:
+  onfail_install_aws-cli:
     description: Install aws-cli On Fail
     steps:  
       - run:
@@ -243,7 +243,7 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-server.yml
-      - install_aws-cli_onfail
+      - onfail_install_aws-cli
       - destroy-environment
 
   run-migrations:
@@ -275,24 +275,24 @@ jobs:
             - .circleci/ansible/inventory.txt
             - backend/migrations_dump.txt
       - revert-migrations            
-      - install_aws-cli_onfail
+      - onfail_install_aws-cli
       - destroy-environment
 
   deploy-frontend:
     docker:
-      - image: circleci/node:13.8.0
+      - image: amazon/aws-cli
     steps:
       - checkout
       - restore_cache:
           keys: [frontend-build]            
       - attach_workspace:
           at: ./               
-      - install_aws-cli
       - run:
           name: Install dependencies
           command: |
             sudo yum update -y
             sudo yum install nodejs npm -y
+      - setup_aws-cli
       - run:
           name: Get backend url
           command: |
@@ -310,7 +310,8 @@ jobs:
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       # Here's where you will add some code to rollback on failure      
-      - revert-migrations            
+      - revert-migrations          
+      - onfail_install_aws-cli  
       - destroy-environment
                               
 #  deploy-backend:
