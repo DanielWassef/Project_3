@@ -280,20 +280,20 @@ jobs:
 
   deploy-frontend:
     docker:
-      - image: amazon/aws-cli
+      - image: cimg/base:stable
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            yum update -y
-            yum install nodejs npm -y
-            yum install tar gzip -y      
+            sudo apt update -y
+            sudo apt install nodejs npm -y
+            sudo apt install tar gzip -y
       - restore_cache:
           keys: [frontend-build]            
       - attach_workspace:
           at: ./               
-      - setup_aws-cli
+      - install_aws-cli
       - run:
           name: Get backend url
           command: |
@@ -312,7 +312,6 @@ jobs:
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       # Here's where you will add some code to rollback on failure      
       - revert-migrations          
-      - onfail_install_aws-cli  
       - destroy-environment
                               
   deploy-backend:
