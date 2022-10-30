@@ -47,6 +47,18 @@ commands:
             sudo ./aws/install
       - setup_aws-cli            
 
+  install_aws-cli:
+    description: Install aws-cli
+    steps:  
+      - run:
+          name: Install aws-cli
+          command: |
+            sudo apt install unzip -y
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+      - setup_aws-cli                  
+
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
     parameters:
@@ -54,16 +66,15 @@ commands:
     steps:
       - run:
           name: Revert migrations
-          # Add when this will run
+          when: on_fail
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            SUCCESS = 1
+            SUCCESS=$(curl https://kvdb.io/${kvdb_b}/logmigration_${CIRCLE_WORKFLOW_ID:0:7})
             if(( $SUCCESS==1 )); 
             then
-            #  cd ~/project/backend
-            #  npm install
-            #  Add revert code here. You can find this in the Getting Started section.
-              exit 1
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
             fi
             
 jobs:
@@ -114,6 +125,9 @@ jobs:
             cd frontend
             npm install
             npm run test
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
                 
   test-backend:
     docker:
@@ -128,6 +142,9 @@ jobs:
             cd backend
             npm install
             npm run test
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
 
   scan-frontend:
     docker:
@@ -144,6 +161,9 @@ jobs:
             npm install oauth-sign@^0.9.0
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
 
   scan-backend:
     docker:
@@ -161,6 +181,9 @@ jobs:
             npm audit fix --audit-level=critical --force
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build            
 
   deploy-infrastructure:
     docker:
@@ -226,6 +249,8 @@ jobs:
       - checkout
       - restore_cache:
           keys: [backend-build]      
+      - attach_workspace:
+          at: ./          
       - run:
           name: Run migrations
           command: |
@@ -237,20 +262,29 @@ jobs:
           command: |
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-                curl -d 'OK' https://kvdb.io/VoGzvC8nbaJyb814HZMiye/logmigration_${CIRCLE_WORKFLOW_ID:0:7}
+                curl -d '1' https://kvdb.io/${kvdb_b}/logmigration_${CIRCLE_WORKFLOW_ID:0:7}
             else
-                curl -d 'KO' https://kvdb.io/VoGzvC8nbaJyb814HZMiye/logmigration_${CIRCLE_WORKFLOW_ID:0:7}
-                exit 1
+                curl -d '-1' https://kvdb.io/${kvdb_b}/logmigration_${CIRCLE_WORKFLOW_ID:0:7}
             fi
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - .circleci/ansible/inventory.txt
+            - backend/migrations_dump.txt
+      - revert-migrations            
       - install_aws-cli_onfail
       - destroy-environment
 
   deploy-frontend:
     docker:
-      - image: amazon/aws-cli
+      - image: circleci/node:13.8.0
     steps:
       - checkout
-      - setup_aws-cli
+      - restore_cache:
+          keys: [frontend-build]            
+      - attach_workspace:
+          at: ./               
+      - install_aws-cli
       - run:
           name: Install dependencies
           command: |
@@ -273,7 +307,8 @@ jobs:
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       # Here's where you will add some code to rollback on failure      
-      - destroy-environment       
+      - revert-migrations            
+      - destroy-environment
                               
 #  deploy-backend:
 #    docker:
