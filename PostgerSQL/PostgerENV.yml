@@ -1,0 +1,152 @@
+Description:
+  This is For FWD Chapter 3 Ansible Test machines.
+
+Parameters:
+  EnvName:
+    Description: Project Name
+    Type: String
+  VPCCIDR:
+    Description: VPC CIDR
+    Type: String
+  PUBSUBCIDR1:
+    Description: Public Subnet CIDR
+    Type: String
+  PUBSUBCIDR2:
+    Description: Public Subnet CIDR
+    Type: String  
+  LinuxAMI:
+    Description: AMI Linux image
+    Type: String
+  VMType:
+    Description: VM type
+    Type: String
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref VPCCIDR
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-VPC
+  IntGW:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-IntGW
+  IntGWAtt:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !GetAtt IntGW.InternetGatewayId
+      VpcId: !Ref VPC
+  
+  PubSub1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      CidrBlock: !Ref PUBSUBCIDR1
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: True
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-PubSub1
+      VpcId: !Ref VPC
+  PubSub2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      CidrBlock: !Ref PUBSUBCIDR2
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: True
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-PubSub2
+      VpcId: !Ref VPC      
+  PubRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvName}-PubRT
+      VpcId: !Ref VPC
+  PubRTAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PubRT
+      SubnetId: !Ref PubSub1
+  PubRTAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PubRT
+      SubnetId: !Ref PubSub2      
+  PubRTRule1:
+    Type: AWS::EC2::Route
+    DependsOn: PubRT
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IntGW
+      RouteTableId: !Ref PubRT
+  RoleForSSMAccess: 
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  ServerInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Roles: 
+        - !Ref RoleForSSMAccess
+  PostgerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Allow All to Host
+      GroupName: PostgerSG
+      SecurityGroupEgress: 
+        - CidrIp: 0.0.0.0/0 
+          FromPort: -1
+          IpProtocol: -1
+          ToPort: -1
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          FromPort: -1
+          IpProtocol: -1
+          ToPort: -1
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-SG
+      VpcId: !Ref VPC
+  Inst:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref ServerInstanceProfile
+      ImageId: !Ref LinuxAMI
+      InstanceType: !Ref VMType
+      KeyName: connect
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "True"
+        DeviceIndex: "0"
+        GroupSet: 
+          - Ref: PostgerSG
+        SubnetId: !Ref PubSub1
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          #sudo -i
+          #apt-get update -y
+          #sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
+          #apt-get install python3 python3-pip -y
+          #echo "Inst" > /etc/hostname
+      Tags: 
+          - Key: Name
+            Value: !Sub ${EnvName}-Inst
+
+#aws cloudformation create-stack  --stack-name PostgerENV --region us-east-1 --template-body file://PostgerENV.yml --parameters file://PostgerENV.json --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
+#login as : ubuntu
