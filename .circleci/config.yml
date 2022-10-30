@@ -286,9 +286,9 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            sudo yum update -y
-            sudo yum install nodejs npm -y
-            sudo yum install tar gzip -y      
+            yum update -y
+            yum install nodejs npm -y
+            yum install tar gzip -y      
       - restore_cache:
           keys: [frontend-build]            
       - attach_workspace:
