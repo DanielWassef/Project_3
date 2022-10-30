@@ -41,7 +41,6 @@ commands:
           name: Install aws-cli on rollback
           when: on_fail
           command: |
-            cat /home/circleci/.npm/_logs/*.log
             sudo apt install unzip -y
             curl -k "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
@@ -284,16 +283,16 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - restore_cache:
-          keys: [frontend-build]            
-      - attach_workspace:
-          at: ./               
       - run:
           name: Install dependencies
           command: |
             sudo yum update -y
             sudo yum install nodejs npm -y
-            sudo yum install tar gzip -y
+            sudo yum install tar gzip -y      
+      - restore_cache:
+          keys: [frontend-build]            
+      - attach_workspace:
+          at: ./               
       - setup_aws-cli
       - run:
           name: Get backend url
@@ -342,9 +341,8 @@ jobs:
           command: |
             cd backend
             npm run build
+            tar -czf artifact.tar.gz dist/* package*
             cd ..
-            # Zip the directory
-            tar -C backend -czvf artifact.tar.gz .
             cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
       - run:
           name: Deploy backend
