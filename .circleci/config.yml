@@ -417,6 +417,10 @@ jobs:
       - checkout
       - setup_aws-cli
       - run:
+          name: Install tar and gzip
+          command: |
+            yum install -y tar gzip      
+      - run:
           name: Update cloudfront distribution
           command: |
             aws cloudformation \
@@ -440,6 +444,10 @@ jobs:
     steps:
       - checkout
       - setup_aws-cli
+      - run:
+          name: Install tar and gzip
+          command: |
+            yum install -y tar gzip      
       - attach_workspace:
           at: ./
       - run:
@@ -486,4 +494,4 @@ workflows:
       #     requires: [cloudfront-update]
       - cloudfront-update
       - cleanup:
-            requires: [cloudfront-update]
+          requires: [cloudfront-update]
