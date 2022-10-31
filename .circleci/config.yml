@@ -401,9 +401,9 @@ jobs:
             if curl -s ${URL} | grep -i "Welcome"
             then
                 # Change this to 0 after the job fails
-              exit 1
-            else
               exit 0
+            else
+              exit 1
             fi
       - revert-migrations            
       - onfail_install_aws-cli
