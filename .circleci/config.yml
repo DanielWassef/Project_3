@@ -12,8 +12,10 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
+            aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             aws cloudformation delete-stack  --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}"
             aws cloudformation delete-stack  --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}"
+            
 
   install_ansible:
     description: Install Ansible
@@ -215,7 +217,7 @@ jobs:
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
-              --tags project=FWD-Prj3-be \
+              --tags project=FWD-Prj3-be run=${CIRCLE_WORKFLOW_ID:0:7}\
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
       - run:
@@ -309,7 +311,8 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --filters Name=tag:project,Values=FWD-Prj3-be | cut -c 5-)
+            echo "output = yaml" >> ~/.aws/config
+            BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --filters Name=tag:run,Values=${CIRCLE_WORKFLOW_ID:0:7} | cut -c 5-)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "API_URL = ${API_URL}"
             echo API_URL=http://${BACKEND_IP}:3030 >> frontend/.env
@@ -369,7 +372,6 @@ jobs:
       - onfail_install_aws-cli
       - destroy-environment      
 
-
   smoke-test:
     docker:
       - image: cimg/base:stable 
@@ -387,11 +389,9 @@ jobs:
             curl ${API_URL}/api/status       
             if curl ${API_URL}/api/status | grep -i "ok"
             then
-                #exit 0
-                echo "ALL IS OK"
+                exit 0
             else
-                #exit 1
-                echo "ALL IS NOT OK"
+                exit 1
             fi
       - run:
           name: Frontend smoke test.
@@ -400,7 +400,6 @@ jobs:
             echo ${URL} 
             if curl -s ${URL} | grep -i "Welcome"
             then
-                # Change this to 0 after the job fails
               exit 0
             else
               exit 1
@@ -408,42 +407,56 @@ jobs:
       - revert-migrations            
       - onfail_install_aws-cli
       - destroy-environment              
-    # Here's where you will add some code to rollback on failure  
 
-#  cloudfront-update:
-#    docker:
-#      # Docker image here that supports AWS CLI
-#    steps:
-#      # Checkout code from git
-#      - run:
-#          name: Install dependencies
-#          command: |
-#            # your code here
-#      - run:
-#          name: Update cloudfront distribution
-#          command: |
-#            # your code here
-#      # Here's where you will add some code to rollback on failure  
-#
-#cleanup:
-#    docker:
-#      # Docker image here
-#    steps:
-#      # Checkout code from git
-#      - run:
-#          name: Get old stack workflow id
-#          command: |
-#            # your code here
-#            export OldWorkflowID="the id here"
-#            export STACKS=[] #put the list of stacks here
-#      - run:
-#          name: Remove old stacks and files
-#          command: |
-#            if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-#            then
-#              # your code here
-#            fi
-            
+  cloudfront-update:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - setup_aws-cli
+      - run:
+          name: Install tar and gzip
+          command: |
+            yum install -y tar gzip      
+      - run:
+          name: Update cloudfront distribution
+          command: |
+            aws cloudformation \
+                    list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+                    --no-paginate --output text >> .circleci/files/oldwf.txt
+            aws cloudformation deploy \
+                    --template-file .circleci/files/cloudfront.yml \
+                    --stack-name InitialStack \
+                    --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+                    --tags project=udapeople
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - .circleci/files/oldwf.txt                 
+      - revert-migrations            
+      - destroy-environment    
+
+  cleanup:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - setup_aws-cli
+      - run:
+          name: Install tar and gzip
+          command: |
+            yum install -y tar gzip      
+      - attach_workspace:
+          at: ./
+      - run:
+          name: Remove old stacks and files
+          command: |
+            OldWorkflowID=$(cat .circleci/files/oldwf.txt)
+            echo OldWorkflowID: "${OldWorkflowID}"
+            echo CIRCLE_WORKFLOW_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+            aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+            aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+            aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
 
 workflows:
   default:
@@ -473,7 +486,7 @@ workflows:
           requires: [run-migrations]
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
-#      - cloudfront-update:
-#          requires: [smoke-test]
-#      - cleanup:
-#          requires: [cloudfront-update]
+      - cloudfront-update:
+          requires: [smoke-test]
+      - cleanup:
+          requires: [cloudfront-update]
