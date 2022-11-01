@@ -1,0 +1,22 @@
+[
+    {
+    "ParameterKey":"EnvName",
+    "ParameterValue":"PRJ3-Prom"
+    },
+    {
+    "ParameterKey":"VPCCIDR",
+    "ParameterValue":"10.10.10.0/16"
+    },
+    {
+    "ParameterKey":"PUBSUBCIDR",
+    "ParameterValue":"10.10.10.0/24"
+    },
+    {
+    "ParameterKey":"LinuxAMI",
+    "ParameterValue":"ami-08c40ec9ead489470"
+    },
+    {
+    "ParameterKey":"VMType",
+    "ParameterValue":"t2.micro"
+    }
+]

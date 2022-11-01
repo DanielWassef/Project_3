@@ -1,0 +1,193 @@
+Description:
+  This is For FWD Chapter 3 Prometheus Test machines.
+
+Parameters:
+  EnvName:
+    Description: Project Name
+    Type: String
+  VPCCIDR:
+    Description: VPC CIDR
+    Type: String
+  PUBSUBCIDR:
+    Description: Public Subnet CIDR
+    Type: String
+  LinuxAMI:
+    Description: AMI Linux image
+    Type: String
+  VMType:
+    Description: VM type
+    Type: String
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref VPCCIDR
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-VPC
+  IntGW:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-IntGW
+  IntGWAtt:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !GetAtt IntGW.InternetGatewayId
+      VpcId: !Ref VPC
+  
+  PubSub:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      CidrBlock: !Ref PUBSUBCIDR
+      MapPublicIpOnLaunch: True
+      Tags: 
+        - Key: Name
+          Value: !Sub ${EnvName}-PubSub
+      VpcId: !Ref VPC
+  PubRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvName}-PubRT
+      VpcId: !Ref VPC
+  PubRTAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PubRT
+      SubnetId: !Ref PubSub
+  PubRTRule1:
+    Type: AWS::EC2::Route
+    DependsOn: PubRT
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IntGW
+      RouteTableId: !Ref PubRT
+  
+  
+  RoleForSSMAccess: 
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+  
+  
+  ServerInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Roles: 
+        - !Ref RoleForSSMAccess
+  
+  
+  
+  
+  PromSerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Allow SSH to Host
+      GroupName: PromSerSG
+      SecurityGroupEgress: 
+        - CidrIp: 0.0.0.0/0 
+          FromPort: -1
+          IpProtocol: -1
+          ToPort: -1
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          FromPort: -1
+          IpProtocol: icmp
+          ToPort: -1
+        - CidrIp: 0.0.0.0/0
+          FromPort: 9090
+          IpProtocol: tcp
+          ToPort: 9090
+        - CidrIp: 0.0.0.0/0
+          FromPort: 9093
+          IpProtocol: tcp
+          ToPort: 9093
+        - CidrIp: 0.0.0.0/0
+          FromPort: 9100
+          IpProtocol: tcp
+          ToPort: 9100
+      Tags: 
+        - Key: Name
+          Value: PromSerSG
+      VpcId: !Ref VPC
+  PromSer:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref ServerInstanceProfile
+      ImageId: !Ref LinuxAMI
+      InstanceType: !Ref VMType
+      KeyName: connect
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "True"
+        DeviceIndex: "0"
+        GroupSet: 
+          - Ref: PromSerSG
+        SubnetId: !Ref PubSub
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo -i
+          apt-get update -y
+          sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
+          apt install tree
+          apt install unzip -y
+          sudo useradd --no-create-home prometheus
+          sudo mkdir /etc/prometheus
+          sudo mkdir /var/lib/prometheus
+          wget https://github.com/prometheus/prometheus/releases/download/v2.19.0/prometheus-2.19.0.linux-amd64.tar.gz
+          tar xvfz prometheus-2.19.0.linux-amd64.tar.gz
+          sudo cp prometheus-2.19.0.linux-amd64/prometheus /usr/local/bin
+          sudo cp prometheus-2.19.0.linux-amd64/promtool /usr/local/bin/
+          sudo cp -r prometheus-2.19.0.linux-amd64/consoles /etc/prometheus
+          sudo cp -r prometheus-2.19.0.linux-amd64/console_libraries /etc/prometheus
+          sudo cp prometheus-2.19.0.linux-amd64/prometheus /usr/local/bin/
+          sudo cp prometheus-2.19.0.linux-amd64/prometheus.yml /etc/prometheus/
+          echo "[Unit]
+          Description=Prometheus
+          Wants=network-online.target
+          After=network-online.target
+          [Service]
+          User=prometheus
+          Group=prometheus
+          Type=simple
+          ExecStart=/usr/local/bin/prometheus \
+              --config.file /etc/prometheus/prometheus.yml \
+              --storage.tsdb.path /var/lib/prometheus/ \
+              --web.console.templates=/etc/prometheus/consoles \
+              --web.console.libraries=/etc/prometheus/console_libraries
+          [Install]
+          WantedBy=multi-user.target" > /etc/systemd/system/prometheus.service
+          sudo chown prometheus:prometheus /etc/prometheus
+          sudo chown prometheus:prometheus /usr/local/bin/prometheus
+          sudo chown prometheus:prometheus /usr/local/bin/promtool
+          sudo chown -R prometheus:prometheus /etc/prometheus/consoles
+          sudo chown -R prometheus:prometheus /etc/prometheus/console_libraries
+          sudo chown -R prometheus:prometheus /var/lib/prometheus
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now prometheus
+          reboot
+      Tags: 
+          - Key: Name
+            Value: PromSer
+
+#aws cloudformation create-stack  --stack-name Prometheus --region us-east-1 --template-body file://Prom_Env_Build.yml --parameters file://Prom_Env_Parameters.json --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
+#login as : ubuntu
