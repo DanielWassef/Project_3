@@ -1,5 +1,5 @@
 [URL01]: https://github.com/DanielWassef/Project_3.git
-[URL02]: http://udapeople-dd0c250.s3-website-us-east-1.amazonaws.com
+[URL02]: http://udapeople-54cb8d8.s3-website-us-east-1.amazonaws.com
 
 
 Cloudfront DNS name : d28nf6af5u3xt3.cloudfront.net	
