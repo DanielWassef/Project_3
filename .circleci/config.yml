@@ -320,28 +320,16 @@ jobs:
             echo "API_URL=http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
       - run:
-          name: Debug 1
-          command: |
-            sudo apt install tree
-            tree .
-      - run:
           name: Deploy frontend objects
           command: |
             cd frontend
             npm install
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
-            ls -la dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-      - run:
-          name: Debug 2
-          command: |
-            tree frontend
-            cat frontend/.env
-            cat frontend/node_modules/timers-br
       # Here's where you will add some code to rollback on failure      
-      # - revert-migrations          
-      # - destroy-environment
+      - revert-migrations          
+      - destroy-environment
                               
   deploy-backend:
     docker: 
