@@ -1,2 +1,6 @@
 [URL01]: https://github.com/DanielWassef/Project_3.git
 [URL02]: Provide the public URL for your S3 Bucket (aka, your front-end). 
+
+
+Cloudfront DNS name : d28nf6af5u3xt3.cloudfront.net	
+Prometheus Server : ec2-67-202-25-199.compute-1.amazonaws.com:9090
