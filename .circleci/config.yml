@@ -258,7 +258,6 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-server.yml
-            exit 1 ###############################################################################################
       - onfail_install_aws-cli
       - destroy-environment
 
