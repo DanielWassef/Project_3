@@ -1,6 +1,6 @@
 [URL01]: https://github.com/DanielWassef/Project_3.git
-[URL02]: http://udapeople-05075cd.s3-website-us-east-1.amazonaws.com
-
+[URL02]: https://udapeople-6c6a297.s3-website-us-east-1.amazonaws.com
+Origen domain : udapeople-6c6a297.s3.amazonaws.com
 
 Cloudfront DNS name : d28nf6af5u3xt3.cloudfront.net
 Prometheus Server : ec2-67-202-25-199.compute-1.amazonaws.com:9090

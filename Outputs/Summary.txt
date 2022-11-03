@@ -1,0 +1,21 @@
+POINT 1:
+I have tried to add as i can understand.
+POINT 2:
+Done
+POINT 3&4:
+I don't understand how to fix this issue and i need your help please: 
+You will find in screen shots a series of Question screenshot related to this part
+After investigating i found that the used API to add employee is wrongly built using a strange backend ip !!!
+As in screenshot 1-A  API IP is 3.85.238.248 but my Backend machine ip is 3.87.161.18 as per screenshot 1-D
+Also you will find that right IP is stored to frontend/.env as per same screenshot 1-D
+1-C show that port 3030 is open and listening and i can telnet it from my local machine
+In 1-B i found part in code that may be responsible for building this API URL but i have no idea how to trace it
+In 1-E i tried to post to the backend ip and it was successfully accessible but of course not working as i didn't add the required parameters but it did respond
+********Thanks to guide me plz******
+POINT 5:
+Done
+Regarding the S3 Bucket website is not reachable: I don't know where is the issue even me i can't access files from bucket it self i can see them when i try to open index.html it can resolve the welcome title but nothing else !!!
+bucket is public as per your yml file (Screenshot 2-A)
+In 2-B you can find that it worked for once ?!!
+
+
