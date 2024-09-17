@@ -481,7 +481,9 @@ workflows:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
           filters:
             branches:
-              only: [main]
+              only:
+                - main
+                - AIP-SPE-2024
       - configure-infrastructure:
           requires: [deploy-infrastructure]
       - run-migrations:
