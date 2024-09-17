@@ -45,8 +45,11 @@ commands:
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          aws-session-token: AWS_SESSION_TOKEN
           aws-region: AWS_DEFAULT_REGION
+      - run:
+          name: Configure AWS Session Token
+          command: |
+            export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
 
   onfail_install_aws-cli:
     description: Install aws-cli On Fail
