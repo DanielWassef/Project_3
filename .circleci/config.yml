@@ -261,7 +261,7 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-server.yml
+            ansible-playbook -i .circleci/ansible/inventory.txt -u ubuntu .circleci/ansible/configure-server.yml -c ssh -o Port=443
       - onfail_install_aws-cli
       - destroy-environment
 
@@ -343,7 +343,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["06:97:e8:63:96:76:34:ee:e3:af:59:36:90:f8:94:e2:96:07:80:c7"]
+          fingerprints: ["88:ae:26:0b:22:38:6b:a2:ef:22:9d:ad:c4:6a:46:1a:70:f2:b0:b9"]
       - attach_workspace:
           at: ./
       - restore_cache:
@@ -373,7 +373,7 @@ jobs:
             cd .circleci/ansible
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
-            ansible-playbook -i inventory.txt deploy-backend.yml
+            ansible-playbook -i inventory.txt deploy-backend.yml -c ssh -o Port=443
       # Here's where you will add some code to rollback on failure  
       - onfail_install_aws-cli
       - destroy-environment      
