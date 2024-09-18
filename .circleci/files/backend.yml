@@ -38,8 +38,8 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash
-          sed -i 's/Port 22/Port 443/' /etc/ssh/sshd_config
-          service sshd restart
+          sed -i 's/#Port 22/Port 443/' /etc/ssh/sshd_config
+          sudo service ssh restart
       ImageId: ami-0e86e20dae9224db8
       Tags:
         - Key: Name
