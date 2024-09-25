@@ -255,6 +255,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["ba:84:ad:4f:f1:eb:87:52:56:50:20:cf:b7:92:b0:02:d2:e4:54:08"]
+          # VIP: you need to copy the private key file content and past it into additional keys on circleCi
       - attach_workspace:
           at: ./
       - install_ansible
