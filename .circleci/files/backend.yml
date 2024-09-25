@@ -37,6 +37,14 @@ Resources:
           FromPort: 9100
           ToPort: 9100
           CidrIp: 128.0.0.0/1
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/1
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 128.0.0.0/1
 
   EC2Instance:
     Type: AWS::EC2::Instance
