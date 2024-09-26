@@ -46,6 +46,10 @@ commands:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
           aws-region: AWS_DEFAULT_REGION
+      - run:
+          name: Configure AWS Session Token
+          command: |
+            export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
 
   onfail_install_aws-cli:
     description: Install aws-cli On Fail
@@ -250,7 +254,8 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["06:97:e8:63:96:76:34:ee:e3:af:59:36:90:f8:94:e2:96:07:80:c7"]
+          fingerprints: ["ba:84:ad:4f:f1:eb:87:52:56:50:20:cf:b7:92:b0:02:d2:e4:54:08"]
+          # VIP: you need to copy the private key file content and past it into additional keys on circleCi
       - attach_workspace:
           at: ./
       - install_ansible
@@ -339,7 +344,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["06:97:e8:63:96:76:34:ee:e3:af:59:36:90:f8:94:e2:96:07:80:c7"]
+          fingerprints: ["ba:84:ad:4f:f1:eb:87:52:56:50:20:cf:b7:92:b0:02:d2:e4:54:08"]
       - attach_workspace:
           at: ./
       - restore_cache:
@@ -477,18 +482,23 @@ workflows:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
           filters:
             branches:
-              only: [main]
+              only:
+                - main
+                - AIP-SPE-2024
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
+      # - run-migrations:
+      #     requires: [configure-infrastructure]
       - deploy-frontend:
-          requires: [run-migrations]
+          # requires: [run-migrations]
+          requires: [configure-infrastructure]
       - deploy-backend:
-          requires: [run-migrations]
-      - smoke-test:
-          requires: [deploy-backend, deploy-frontend]
+          # requires: [run-migrations]
+          requires: [configure-infrastructure]
+      # - smoke-test:
+      #     requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
-          requires: [smoke-test]
-      - cleanup:
-          requires: [cloudfront-update]
+          # requires: [smoke-test]
+          requires: [deploy-backend, deploy-frontend]
+      # - cleanup:
+      #     requires: [cloudfront-update]

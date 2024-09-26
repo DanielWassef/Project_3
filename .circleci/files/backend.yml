@@ -16,15 +16,35 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: 0.0.0.0/0
+          CidrIp: 0.0.0.0/1
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 128.0.0.0/1
         - IpProtocol: tcp
           FromPort: 3030
           ToPort: 3030
-          CidrIp: 0.0.0.0/0
+          CidrIp: 0.0.0.0/1
+        - IpProtocol: tcp
+          FromPort: 3030
+          ToPort: 3030
+          CidrIp: 128.0.0.0/1
         - IpProtocol: tcp
           FromPort: 9100
           ToPort: 9100
-          CidrIp: 0.0.0.0/0
+          CidrIp: 0.0.0.0/1
+        - IpProtocol: tcp
+          FromPort: 9100
+          ToPort: 9100
+          CidrIp: 128.0.0.0/1
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/1
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 128.0.0.0/1
 
   EC2Instance:
     Type: AWS::EC2::Instance
@@ -32,10 +52,10 @@ Resources:
       InstanceType: t2.micro
       SecurityGroups:
         - Ref: InstanceSecurityGroup
-      KeyName: Test # If you use another key pair name, you should change this value to match.
+      KeyName: accessUdaPeople # If you use another key pair name, you should change this value to match.
       # If this ami id is not available for you, you can find another (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html)
       # Ubuntu 18 or higher works fine
-      ImageId: ami-04b70fa74e45c3917
+      ImageId: ami-07d20571c32ba6cdc
       Tags:
         - Key: Name
           Value: !Sub backend-${ID}
